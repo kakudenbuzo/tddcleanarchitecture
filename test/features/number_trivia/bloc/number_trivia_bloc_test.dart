@@ -1,7 +1,10 @@
+import 'package:bloc_test/bloc_test.dart';
 import 'package:dartz/dartz.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
+import 'package:tddcleanarchitecture/core/error/failures.dart';
+import 'package:tddcleanarchitecture/core/usecases/usecase.dart';
 import 'package:tddcleanarchitecture/core/util/input_converter.dart';
 import 'package:tddcleanarchitecture/features/number_trivia/domain/entities/number_trivia.dart';
 import 'package:tddcleanarchitecture/features/number_trivia/domain/usecases/get_concrete_number_trivia.dart';
@@ -37,12 +40,17 @@ void main() {
     const tNumberParsed = 1;
     const tNumberTrivia = NumberTrivia(number: 1, text: "test trivia");
 
+    void setUpMockInputConverterSuccess() =>
+        when(mockInputConverter.stringToUnsignedInteger(any))
+            .thenReturn(const Right(tNumberParsed));
+
     test(
         "should call the InputConverter to validate and convert the string to an unsigned integer",
         () async {
       // arrange
-      when(mockInputConverter.stringToUnsignedInteger(any))
-          .thenReturn(const Right(tNumberParsed));
+      setUpMockInputConverterSuccess();
+      when(mockGetConcreteNumberTrivia(any))
+          .thenAnswer((_) async => const Right(tNumberTrivia));
       // act
       bloc.add(const GetTriviaForConcreteNumber(tNumberString));
       await untilCalled(mockInputConverter.stringToUnsignedInteger(any));
@@ -50,18 +58,130 @@ void main() {
       verify(mockInputConverter.stringToUnsignedInteger(tNumberString));
     });
 
-    test("should emit [Error] when the input is invalid", () async* {
-      // arrange
-      when(mockInputConverter.stringToUnsignedInteger(any))
-          .thenReturn(Left(InvalidInputFailure()));
-      // assert later
-      final expected = [
-        Empty(),
+    blocTest<NumberTriviaBloc, NumberTriviaState>(
+      "should emit [Error] when the input is invalid",
+      build: () {
+        when(mockInputConverter.stringToUnsignedInteger(any))
+            .thenReturn(Left(InvalidInputFailure()));
+        return bloc;
+      },
+      act: (bloc) => bloc.add(const GetTriviaForConcreteNumber(tNumberString)),
+      expect: () => <NumberTriviaState>[
         const Error(message: INVALID_INPUT_FAILURE_MESSAGE),
-      ];
-      expectLater(bloc.state, emitsInOrder(expected));
+      ],
+    );
+
+    test("should get data from the concrete use case", () async {
+      // arrange
+      setUpMockInputConverterSuccess();
+      when(mockGetConcreteNumberTrivia(any))
+          .thenAnswer((_) async => const Right(tNumberTrivia));
       // act
       bloc.add(const GetTriviaForConcreteNumber(tNumberString));
+      await untilCalled(mockGetConcreteNumberTrivia(any));
+      // assert
+      verify(mockGetConcreteNumberTrivia(tNumberParsed));
     });
+
+    blocTest<NumberTriviaBloc, NumberTriviaState>(
+      "should emit [Loading, Loaded] when data is gotten successful",
+      build: () {
+        setUpMockInputConverterSuccess();
+        when(mockGetConcreteNumberTrivia(any))
+            .thenAnswer((_) async => const Right(tNumberTrivia));
+        return bloc;
+      },
+      act: (bloc) => bloc.add(const GetTriviaForConcreteNumber(tNumberString)),
+      expect: () => <NumberTriviaState>[
+        Loading(),
+        const Loaded(trivia: tNumberTrivia),
+      ],
+    );
+
+    blocTest<NumberTriviaBloc, NumberTriviaState>(
+      "should emit [Loading, Error] when getting data fails",
+      build: () {
+        setUpMockInputConverterSuccess();
+        when(mockGetConcreteNumberTrivia(any))
+            .thenAnswer((_) async => Left(ServerFailure()));
+        return bloc;
+      },
+      act: (bloc) => bloc.add(const GetTriviaForConcreteNumber(tNumberString)),
+      expect: () => <NumberTriviaState>[
+        Loading(),
+        const Error(message: SERVER_FAILURE_MESSAGE),
+      ],
+    );
+
+    blocTest<NumberTriviaBloc, NumberTriviaState>(
+      "should emit [Loading, Error] with a proper message for the error when getting data fails",
+      build: () {
+        setUpMockInputConverterSuccess();
+        when(mockGetConcreteNumberTrivia(any))
+            .thenAnswer((_) async => Left(CacheFailure()));
+        return bloc;
+      },
+      act: (bloc) => bloc.add(const GetTriviaForConcreteNumber(tNumberString)),
+      expect: () => <NumberTriviaState>[
+        Loading(),
+        const Error(message: CACHE_FAILURE_MESSAGE),
+      ],
+    );
+  });
+  group("GetTriviaForRandomNumber", () {
+    const tNumberTrivia = NumberTrivia(number: 1, text: "test trivia");
+
+    test("should get data from the concrete use case", () async {
+      // arrange
+      when(mockGetRandomNumberTrivia(any))
+          .thenAnswer((_) async => const Right(tNumberTrivia));
+      // act
+      bloc.add(GetTriviaForRandomNumber());
+      await untilCalled(mockGetRandomNumberTrivia(any));
+      // assert
+      verify(mockGetRandomNumberTrivia(NoParams()));
+    });
+
+    blocTest<NumberTriviaBloc, NumberTriviaState>(
+      "should emit [Loading, Loaded] when data is gotten successful",
+      build: () {
+        when(mockGetRandomNumberTrivia(any))
+            .thenAnswer((_) async => const Right(tNumberTrivia));
+        return bloc;
+      },
+      act: (bloc) => bloc.add(GetTriviaForRandomNumber()),
+      expect: () => <NumberTriviaState>[
+        Loading(),
+        const Loaded(trivia: tNumberTrivia),
+      ],
+    );
+
+    blocTest<NumberTriviaBloc, NumberTriviaState>(
+      "should emit [Loading, Error] when getting data fails",
+      build: () {
+        when(mockGetRandomNumberTrivia(any))
+            .thenAnswer((_) async => Left(ServerFailure()));
+        return bloc;
+      },
+      act: (bloc) => bloc.add(GetTriviaForRandomNumber()),
+      expect: () => <NumberTriviaState>[
+        Loading(),
+        const Error(message: SERVER_FAILURE_MESSAGE),
+      ],
+    );
+
+    blocTest<NumberTriviaBloc, NumberTriviaState>(
+      "should emit [Loading, Error] with a proper message for the error when getting data fails",
+      build: () {
+        when(mockGetRandomNumberTrivia(any))
+            .thenAnswer((_) async => Left(CacheFailure()));
+        return bloc;
+      },
+      act: (bloc) => bloc.add(GetTriviaForRandomNumber()),
+      expect: () => <NumberTriviaState>[
+        Loading(),
+        const Error(message: CACHE_FAILURE_MESSAGE),
+      ],
+    );
   });
 }

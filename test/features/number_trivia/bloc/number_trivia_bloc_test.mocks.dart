@@ -7,7 +7,8 @@ import 'dart:async' as _i5;
 import 'package:dartz/dartz.dart' as _i3;
 import 'package:mockito/mockito.dart' as _i1;
 import 'package:tddcleanarchitecture/core/error/failures.dart' as _i6;
-import 'package:tddcleanarchitecture/core/util/input_converter.dart' as _i9;
+import 'package:tddcleanarchitecture/core/usecases/usecase.dart' as _i9;
+import 'package:tddcleanarchitecture/core/util/input_converter.dart' as _i10;
 import 'package:tddcleanarchitecture/features/number_trivia/domain/entities/number_trivia.dart'
     as _i7;
 import 'package:tddcleanarchitecture/features/number_trivia/domain/repositories/number_trivia_repository.dart'
@@ -69,8 +70,9 @@ class MockGetRandomNumberTrivia extends _i1.Mock
               returnValue: _FakeNumberTriviaRepository_0())
           as _i2.NumberTriviaRepository);
   @override
-  _i5.Future<_i3.Either<_i6.Failure, _i7.NumberTrivia>> call(int? _) =>
-      (super.noSuchMethod(Invocation.method(#call, [_]),
+  _i5.Future<_i3.Either<_i6.Failure, _i7.NumberTrivia>> call(
+          _i9.NoParams? params) =>
+      (super.noSuchMethod(Invocation.method(#call, [params]),
           returnValue: Future<_i3.Either<_i6.Failure, _i7.NumberTrivia>>.value(
               _FakeEither_1<_i6.Failure, _i7.NumberTrivia>())) as _i5
           .Future<_i3.Either<_i6.Failure, _i7.NumberTrivia>>);
@@ -79,7 +81,7 @@ class MockGetRandomNumberTrivia extends _i1.Mock
 /// A class which mocks [InputConverter].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockInputConverter extends _i1.Mock implements _i9.InputConverter {
+class MockInputConverter extends _i1.Mock implements _i10.InputConverter {
   MockInputConverter() {
     _i1.throwOnMissingStub(this);
   }
